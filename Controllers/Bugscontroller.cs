@@ -1,22 +1,13 @@
-﻿using BugProject.Dtos.Bugs;
+﻿
+using BugProject.Dtos.Bugs;
 using BugProject.Interfaces;
-using BugProject.Mappers;
 using BugProject.Models;
-using BugProject.Repositry;
 using FinanceProject.Data;
-using FinanceProject.Dtos.Accont;
-using FinanceProject.Interfaces;
 using FinanceProject.Models;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting.Internal;
-using System;
-using System.Diagnostics;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace BugProject.Controllers
 {
@@ -38,25 +29,75 @@ namespace BugProject.Controllers
         }
 
 
+
+      
+
+       /*
+
         [HttpGet("Get All")]
 
         public async Task<IActionResult> getBugsAsync()
 
 
+
         {
 
 
+            var bg = _context.bugs.Include(b => b.Bug_Atachment).Where(b => b.Id == bug_id);
+
+            //var user = _usermanager.Users.FirstOrDefault(u => u.UserName == logindto.Username.ToString());
+
+            
+
+
             var bg =  _context.bugs.Include(b => b.Bug_Atachment).ToList();
+
             return Ok(bg);
+        }*/
+
+
+        [HttpGet("Get_Image")]
+        public async Task<IActionResult> GetBug(int bugsid)
+        {
+            var bg = await _context.bug_Atachments.FindAsync(bugsid);
+
+            if (bg == null)
+            {
+                return NotFound();
+            }
+
+            // Assuming ImagePaths is a comma-separated string or a list of strings
+            var imagePaths = bg.ImagePaths.Split(',').ToList(); // Modify this based on your actual data structure
+            var baseUrl = $"https://localhost:7179/images/";
+            var imageUrls = new List<string>();
+
+            foreach (var path in imagePaths)
+            {
+                var imagePath = Path.Combine(_hostingEnvironment.WebRootPath,"images", path.Trim());
+                Console.WriteLine(imagePath); // Debugging: print the image path to check if it’s correct
+
+                if (System.IO.File.Exists(imagePath))
+                {
+                    imageUrls.Add($"{baseUrl}{path.Trim()}");
+                }
+            }
+
+            if (imageUrls.Count == 0)
+            {
+                return NotFound("No images found");
+            }
+
+            return Ok(imageUrls);
         }
 
 
 
 
-        LoginDto logindto;
 
+      
 
         [HttpPost("Add Bug With Image")]
+
         public async Task<ActionResult<Bugs>> CreateBugsWithImage([FromForm] NewBugsDto newbugDto)
         {
             if (newbugDto.FilePaths == null || !newbugDto.FilePaths.Any())
@@ -70,9 +111,15 @@ namespace BugProject.Controllers
             foreach (var imageFile in newbugDto.FilePaths)
             {
 
-                var fileName = Path.GetFileName(imageFile.FileName);
+
+                //var fileName = Path.GetFileName(imageFile.FileName);
+                 var fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+               // var filePath = Path.Combine(_hostingEnvironment.WebRootPath,"images",fileName);
+
+                //var fileName = Path.GetFileName(imageFile.FileName);
                 // var fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
                 var filePath = Path.Combine(_hostingEnvironment.WebRootPath, "images", fileName);
+
 
 
 
@@ -83,6 +130,11 @@ namespace BugProject.Controllers
                 {
                     await imageFile.CopyToAsync(fileStream);
                 }
+
+    
+
+                // Add the relative path to the filePaths list
+               // filePaths.Add(Path.Combine("images", fileName));
 
                 // filePaths.Add("/uploads/" + fileName);
                 filePaths.Add(fileName);
@@ -116,7 +168,11 @@ namespace BugProject.Controllers
                 SystemName = newbugDto.SystemName,
 
 
+
+               //UserName = user,
+
               //  UserName = user,
+
 
                  UserName = newbugDto.UserName,
 
@@ -132,7 +188,11 @@ namespace BugProject.Controllers
 
                 Bug_Atachment = new Bug_Atachment
                 {
-                    ImagePaths = combinedFilePaths,
+
+                   ImagePaths = combinedFilePaths,
+
+                   
+
                 }
 
             };
@@ -147,15 +207,7 @@ namespace BugProject.Controllers
 
 
 
-
-
-
-
-
-
-
-
-
+ 
 
 
 
@@ -167,7 +219,7 @@ namespace BugProject.Controllers
 
 
         [HttpGet("Get by Id")]
-        public async Task<IActionResult> GetBug(int id)
+        public async Task<IActionResult> GetBugs(int id)
         {
 
 
@@ -191,6 +243,7 @@ namespace BugProject.Controllers
         
 
          
+
 
         // PUT api/<Bugscontroller>/5
         [HttpPut("Update")]
@@ -246,7 +299,11 @@ namespace BugProject.Controllers
 
             var userAgent = Request.Headers["User-Agent"].ToString();
 
+
+           
+
             //var user = _usermanager.Users.FirstOrDefault(u => u.UserName == logindto.Username.ToString());
+
 
 
 
@@ -269,9 +326,15 @@ namespace BugProject.Controllers
            bg. SystemName = newbugDto.SystemName;
 
 
+
+           
+
+            bg.UserName = newbugDto.UserName;
+
             //  UserName = user,
 
             bg.UserName = newbugDto.UserName;
+
 
 
 
@@ -284,6 +347,8 @@ namespace BugProject.Controllers
             bg.Status = newbugDto.Status;
 
             bg.Bug_Atachment.ImagePaths = combinedFilePaths;
+        
+
             
             /*
             Bug_Atachment = new Bug_Atachment
@@ -291,6 +356,7 @@ namespace BugProject.Controllers
                     ImagePaths = combinedFilePaths,
                 }
             */
+
 
             await _context.SaveChangesAsync( );
      
@@ -324,5 +390,12 @@ namespace BugProject.Controllers
 
             return Ok("item is removed");
         }
+
+
+
+
+
+        
+
     }
 }
